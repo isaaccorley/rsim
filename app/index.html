@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Are Pretrained Image Matchers Good Enough for SAR&ndash;Optical Satellite Registration?</title>
+  <meta name="description" content="CVPR 2026 Image Matching Workshop. We evaluate 24 pretrained image matchers zero-shot on SAR-optical satellite registration across SpaceNet9, SRIF, and SARptical.">
+  <meta property="og:title" content="Are Pretrained Image Matchers Good Enough for SAR&ndash;Optical Satellite Registration?">
+  <meta property="og:description" content="24 pretrained matcher families, 3 cross-modal benchmarks, no fine-tuning. RoMa and XoFTR reach 3.0 px mean error on SpaceNet9.">
+  <meta property="og:image" content="static/hero.jpg">
+  <meta property="og:type" content="article">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-body: "Newsreader", georgia, serif;
+      --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+      --color-page: #fbfbfb;
+      --color-ink: #171717;
+      --color-ink-soft: rgb(0 0 0 / 70%);
+      --color-ink-mute: rgb(0 0 0 / 50%);
+      --color-ink-faint: rgb(0 0 0 / 20%);
+      --color-line: rgb(0 0 0 / 50%);
+      --color-line-soft: rgb(0 0 0 / 15%);
+      --color-panel: #fff;
+      --color-accent: #002ef4;
+      --color-accent-deep: #0024bd;
+      --color-accent-soft: rgb(0 46 244 / 35%);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; }
+
+    body {
+      background-color: var(--color-page);
+      background-image: url('data:image/svg+xml,%3Csvg%20width%3D%223%22%20height%3D%223%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cline%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%223%22%20stroke%3D%22%23002ef4%22%20stroke-opacity%3D%220.13%22%20stroke-width%3D%221%22%2F%3E%3C%2Fsvg%3E');
+      background-repeat: repeat;
+      color: var(--color-ink);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizelegibility;
+    }
+
+    ::selection { background-color: var(--color-accent); color: #fff; }
+
+    .page {
+      max-width: 42rem;
+      margin: 0 auto;
+      padding: 3.5rem 1.5rem 4rem;
+      border-left: 1px solid var(--color-line-soft);
+      border-right: 1px solid var(--color-line-soft);
+      background-color: var(--color-page);
+    }
+
+    /* ---- Mono microlabel ---- */
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--color-ink-mute);
+    }
+
+    /* ---- Header ---- */
+    h1 {
+      margin-top: 1.4rem;
+      font-family: var(--font-body);
+      font-size: clamp(1.9rem, 5.5vw, 2.7rem);
+      font-weight: 500;
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      text-wrap: balance;
+    }
+    .authors {
+      margin-top: 1.5rem;
+      font-size: 1.02rem;
+      color: var(--color-ink-soft);
+    }
+    .authors sup { font-size: 0.65em; color: var(--color-ink-mute); }
+    .affil {
+      margin-top: 0.35rem;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--color-ink-mute);
+    }
+    .paperlinks {
+      margin-top: 1.6rem;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .paperlinks a {
+      color: var(--color-ink);
+      text-decoration: none;
+      border: 1px solid var(--color-line);
+      background: rgb(255 255 255 / 50%);
+      padding: 0.5rem 0.9rem;
+      margin-right: 0.4rem;
+      display: inline-block;
+      margin-bottom: 0.4rem;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+    .paperlinks a:hover { color: var(--color-accent); border-color: #000; }
+
+    /* ---- Links ---- */
+    a {
+      color: var(--color-accent-deep);
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 2px;
+      text-decoration-color: var(--color-accent-soft);
+      transition: color 0.15s ease, text-decoration-color 0.15s ease;
+    }
+    a:hover { color: var(--color-accent); text-decoration-color: var(--color-accent); }
+
+    /* ---- Prose ---- */
+    article { counter-reset: section; }
+    article p {
+      font-size: 0.9688rem;
+      line-height: 1.8;
+      color: var(--color-ink-soft);
+      text-align: justify;
+      text-wrap: pretty;
+      hyphens: auto;
+      margin-top: 1.1em;
+    }
+    article strong { color: var(--color-ink); font-weight: 620; }
+
+    h2 {
+      font-family: var(--font-mono);
+      color: var(--color-ink);
+      font-size: 0.82rem;
+      line-height: 1.4;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 3em;
+      padding-top: 1.1em;
+      border-top: 1px solid var(--color-line-soft);
+      counter-increment: section;
+    }
+    h2::before {
+      content: counter(section, decimal-leading-zero) " \00b7  ";
+      color: var(--color-accent);
+    }
+
+    /* ---- Figure plates ---- */
+    figure {
+      margin-top: 1.6em;
+      border: 1px solid var(--color-line-soft);
+      background-color: var(--color-panel);
+    }
+    figure img { display: block; width: 100%; height: auto; }
+    figcaption {
+      border-top: 1px solid var(--color-line-soft);
+      padding: 0.55em 0.9em;
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      line-height: 1.6;
+      letter-spacing: 0.02em;
+      color: var(--color-ink-mute);
+    }
+
+    .fig-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    .fig-pair figure { margin-top: 0.75rem; }
+    .gallery {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-top: 0.85rem;
+    }
+    .gallery figure { margin-top: 0; }
+    @media (max-width: 540px) {
+      .fig-pair, .gallery { grid-template-columns: 1fr; }
+    }
+
+    /* ---- Table ---- */
+    .table-scroll { overflow-x: auto; margin-top: 1.4em; }
+    table {
+      width: 100%;
+      min-width: 32rem;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      line-height: 1.5;
+      font-variant-numeric: tabular-nums;
+      color: var(--color-ink-soft);
+    }
+    thead th {
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--color-ink);
+      border-top: 1px solid var(--color-line);
+      border-bottom: 1px solid var(--color-line-soft);
+      padding: 0.5em 0.75em;
+      text-align: right;
+      white-space: nowrap;
+    }
+    tbody td { padding: 0.45em 0.75em; text-align: right; white-space: nowrap; }
+    thead th:first-child, tbody td:first-child,
+    thead th:nth-child(2), tbody td:nth-child(2) { text-align: left; }
+    tbody tr:last-child td { border-bottom: 1px solid var(--color-line); }
+    tbody tr.best td { color: var(--color-ink); font-weight: 500; }
+    .table-note {
+      font-family: var(--font-mono);
+      font-size: 0.66rem !important;
+      line-height: 1.6 !important;
+      letter-spacing: 0.02em;
+      color: var(--color-ink-mute) !important;
+      text-align: left !important;
+      hyphens: none !important;
+      margin-top: 0.75em !important;
+    }
+
+    /* ---- Code and BibTeX plates ---- */
+    .code-block {
+      margin-top: 1.4em;
+      border: 1px solid var(--color-line);
+      background-color: var(--color-panel);
+    }
+    .code-block .plate-label {
+      border-bottom: 1px solid var(--color-line-soft);
+      padding: 0.45em 0.9em;
+      font-family: var(--font-mono);
+      font-size: 0.64rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--color-accent);
+    }
+    .code-block pre {
+      overflow-x: auto;
+      padding: 0.9em;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      line-height: 1.75;
+      color: var(--color-ink);
+    }
+    .code-block .comment { color: var(--color-ink-mute); }
+
+    /* ---- Footer ---- */
+    footer {
+      margin-top: 4rem;
+      padding-top: 1.1em;
+      border-top: 1px solid var(--color-line-soft);
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      letter-spacing: 0.02em;
+      color: var(--color-ink-mute);
+    }
+    footer a { color: var(--color-ink-mute); }
+    footer a:hover { color: var(--color-accent); }
+
+    @media (max-width: 540px) {
+      .page { padding: 2.5rem 1.1rem 3rem; }
+      article p { text-align: left; hyphens: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+
+    <header>
+      <p class="eyebrow">CVPR 2026 &middot; Image Matching Workshop</p>
+      <h1>Are Pretrained Image Matchers Good Enough for SAR&ndash;Optical Satellite Registration?</h1>
+      <p class="authors">
+        <a href="https://isaacc.dev">Isaac Corley</a><sup>1</sup> &middot;
+        <a href="https://alexstoken.github.io/">Alex Stoken</a><sup>2</sup> &middot;
+        <a href="https://gmberton.github.io/">Gabriele Berton</a><sup>2</sup>
+      </p>
+      <p class="affil"><sup>1</sup> Taylor Geospatial &nbsp;&middot;&nbsp; <sup>2</sup> Independent Researcher</p>
+      <nav class="paperlinks">
+        <a href="https://arxiv.org/pdf/2604.10217">Paper (PDF)</a>
+        <a href="https://github.com/isaaccorley/rsim">Code &amp; Data</a>
+        <a href="#citation">Citation</a>
+      </nav>
+    </header>
+
+    <figure>
+      <img src="static/hero.jpg" alt="Zero-shot SAR-optical registration on SpaceNet9: optical and SAR scenes beside a gallery of tiled correspondences.">
+      <figcaption>Zero-shot SAR&ndash;optical registration on SpaceNet9. Left, the full-resolution optical and SAR scenes. Right, tiled correspondences from a pretrained matcher with no satellite fine-tuning. Green lines are affine-RANSAC inliers; orange lines are outliers.</figcaption>
+    </figure>
+
+    <article>
+      <h2>Abstract</h2>
+      <p>
+        Cross-modal optical&ndash;SAR registration is a bottleneck for disaster response with
+        remote sensing. Modern image matchers, however, are developed and benchmarked almost
+        exclusively on natural images. We evaluate twenty-four pretrained matcher families on
+        SpaceNet9 and two additional cross-modal benchmarks. Every matcher runs zero-shot, with
+        no fine-tuning or domain adaptation on satellite or SAR data, under a deterministic
+        protocol with tiled large-image inference, robust geometric filtering, and
+        tie-point-grounded metrics.
+      </p>
+      <p>
+        Transfer is asymmetric. Matchers with explicit cross-modal training do not uniformly
+        outperform those without it. <strong>XoFTR</strong>, trained for visible&ndash;thermal
+        matching, and <strong>RoMa</strong> reach the lowest mean error of
+        <strong>3.0&thinsp;px</strong> on the labeled SpaceNet9 scenes. RoMa does this without
+        any cross-modal training, and MatchAnything-ELoFTR (3.4&thinsp;px), trained on synthetic
+        cross-modal pairs, matches closely. A working hypothesis is that foundation-model
+        features (DINOv2) carry a modality invariance that partially substitutes for explicit
+        cross-modal supervision. 3D-reconstruction matchers (MASt3R, DUSt3R) are not designed
+        for 2D matching. They are highly protocol-sensitive and remain fragile under default
+        settings.
+      </p>
+      <p>
+        The deployment protocol matters as much as the matcher. Choices of geometry model, tile
+        size, and inlier gating shift accuracy by up to <strong>33&times;</strong> for a single
+        matcher, sometimes more than swapping matchers entirely within the evaluated sweep.
+        Affine geometry alone reduces mean error from 12.34 to 9.74&thinsp;px.
+      </p>
+
+      <h2>Results on SpaceNet9</h2>
+      <p>
+        The table ranks the top matchers on SpaceNet9 under one fixed protocol (affine geometry,
+        512&thinsp;px tiles, 256&thinsp;px overlap, 1024&thinsp;px max side, RANSAC threshold
+        3.0&thinsp;px, at least 4 inliers). Each row reports the best normalization for that
+        matcher.
+      </p>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Matcher</th>
+              <th>Norm</th>
+              <th>Mean err (px) &darr;</th>
+              <th>S@5 &uarr;</th>
+              <th>S@10 &uarr;</th>
+              <th>Fail &darr;</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="best"><td>RoMa</td><td>Z-score</td><td>3.0</td><td>78.9</td><td>94.2</td><td>0.00</td></tr>
+            <tr class="best"><td>XoFTR</td><td>Percentile</td><td>3.0</td><td>78.4</td><td>90.5</td><td>0.00</td></tr>
+            <tr><td>RoMa + LoFTR</td><td>Percentile</td><td>3.3</td><td>75.9</td><td>90.1</td><td>0.00</td></tr>
+            <tr><td>MA-ELoFTR</td><td>Z-score</td><td>3.4</td><td>71.2</td><td>93.3</td><td>0.00</td></tr>
+            <tr><td>MINIMA-RoMa</td><td>Percentile</td><td>3.4</td><td>66.6</td><td>79.6</td><td>0.00</td></tr>
+            <tr><td>RoMaV2</td><td>Z-score</td><td>3.6</td><td>69.2</td><td>90.2</td><td>0.00</td></tr>
+            <tr><td>GIM-DKM</td><td>Z-score</td><td>4.1</td><td>57.6</td><td>85.6</td><td>0.00</td></tr>
+            <tr><td>SuperPoint-LG</td><td>Z-score</td><td>4.4</td><td>65.4</td><td>77.6</td><td>0.00</td></tr>
+            <tr><td>ALIKED-LG</td><td>Percentile</td><td>4.5</td><td>62.2</td><td>84.8</td><td>0.00</td></tr>
+            <tr><td>MASt3R</td><td>Identity</td><td>4.5</td><td>60.9</td><td>80.9</td><td>0.00</td></tr>
+            <tr><td>LoFTR</td><td>Identity</td><td>5.1</td><td>54.4</td><td>81.0</td><td>0.00</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-note">Mean error in pixels; S@5 and S@10 in percent; failure rate in [0,1].</p>
+      <figure>
+        <img src="static/figures/norm_matcher_heatmap.png" alt="Heatmap of mean corner reprojection error on SRIF by matcher and normalization.">
+        <figcaption>Mean corner reprojection error on SRIF (600 pairs) for the top SpaceNet9 matchers across three normalizations. CLAHE is the safest default, but matcher-specific choices matter.</figcaption>
+      </figure>
+
+      <h2>Protocol sensitivity</h2>
+      <p>
+        The same matcher can move from competitive to broken under different deployment
+        settings. We sweep 16 protocol configurations per matcher on SpaceNet9 (64 total runs).
+        The spread across configurations is often comparable to or larger than the differences
+        between matchers. Affine geometry outperforms homography (9.74 vs 12.34&thinsp;px mean
+        error), and the best configuration reaches 7.2&thinsp;px mean error with 0.802
+        Success@10 and no failures.
+      </p>
+      <figure>
+        <img src="static/figures/protocol_sensitivity_violin.png" alt="Violin plot of per-matcher mean error across 16 protocol configurations on SpaceNet9.">
+        <figcaption>Mean tie-point error across 16 protocol configurations per matcher. A tighter distribution means a more protocol-robust matcher.</figcaption>
+      </figure>
+      <div class="fig-pair">
+        <figure>
+          <img src="static/figures/spacenet_geometry_tradeoff.png" alt="Bar chart of mean error by geometry model for LoFTR and XFeat.">
+          <figcaption>Geometry model. Affine outperforms homography for both LoFTR and XFeat.</figcaption>
+        </figure>
+        <figure>
+          <img src="static/figures/spacenet_threshold_robustness.png" alt="Success at 10 px versus RANSAC threshold for several matchers.">
+          <figcaption>RANSAC threshold. Top dense matchers are flat across 1&ndash;20&thinsp;px; XFeat is the outlier.</figcaption>
+        </figure>
+      </div>
+      <figure>
+        <img src="static/figures/spacenet_tile_overlap_heatmap.png" alt="Heatmap of mean error over tile size and tile overlap.">
+        <figcaption>Tile size dominates overlap. RoMa and LoFTR prefer 512&ndash;768&thinsp;px tiles; XFeat is less sensitive.</figcaption>
+      </figure>
+
+      <h2>Correspondence gallery</h2>
+      <p>
+        Same crop, different matcher, on SpaceNet9 scene 03_01. Green lines are affine-RANSAC
+        inliers; orange lines are outliers.
+      </p>
+      <div class="gallery">
+        <figure>
+          <img src="static/gallery/roma_zscore_patch01.jpg" alt="RoMa correspondences on a SpaceNet9 crop.">
+          <figcaption>RoMa &middot; z-score</figcaption>
+        </figure>
+        <figure>
+          <img src="static/gallery/roma-loftr_clahe_patch01.jpg" alt="RoMa plus LoFTR ensemble correspondences on a SpaceNet9 crop.">
+          <figcaption>RoMa + LoFTR &middot; CLAHE</figcaption>
+        </figure>
+        <figure>
+          <img src="static/gallery/minima-roma_zscore_patch03.jpg" alt="MINIMA-RoMa correspondences on a SpaceNet9 crop.">
+          <figcaption>MINIMA-RoMa &middot; z-score</figcaption>
+        </figure>
+        <figure>
+          <img src="static/gallery/loftr_clahe_patch01.jpg" alt="LoFTR correspondences on a SpaceNet9 crop.">
+          <figcaption>LoFTR &middot; CLAHE</figcaption>
+        </figure>
+        <figure>
+          <img src="static/gallery/master_clahe_patch02.jpg" alt="MASt3R correspondences on a SpaceNet9 crop.">
+          <figcaption>MASt3R &middot; CLAHE</figcaption>
+        </figure>
+        <figure>
+          <img src="static/gallery/duster_clahe_patch01.jpg" alt="DUSt3R correspondences on a SpaceNet9 crop.">
+          <figcaption>DUSt3R &middot; CLAHE</figcaption>
+        </figure>
+      </div>
+
+      <h2>Reproduce</h2>
+      <p>
+        The code, data manifests, and protocol configurations are on
+        <a href="https://github.com/isaaccorley/rsim">GitHub</a>. The full sweep ran on a single
+        RTX 3090. Python 3.12 or newer; CUDA recommended.
+      </p>
+      <div class="code-block">
+        <div class="plate-label">Shell</div>
+        <pre><span class="comment"># clone and install</span>
+git clone https://github.com/isaaccorley/rsim.git
+cd rsim &amp;&amp; make install
+
+<span class="comment"># run one matcher on SpaceNet9 with the paper's default protocol</span>
+uv run python -m rsim.spacenet9_matcher_benchmark \
+    --device cuda \
+    --matchers roma \
+    --tile-size 512 --tile-overlap 256 \
+    --max-side 1024 \
+    --normalizations zscore
+
+<span class="comment"># reproduce all results, figures, and tables end-to-end</span>
+uv run python scripts/run_protocol_sweep_top_matchers.py --device cuda
+uv run python scripts/generate_paper_assets.py</pre>
+      </div>
+
+      <h2 id="citation">Citation</h2>
+      <div class="code-block">
+        <div class="plate-label">BibTeX</div>
+        <pre>@InProceedings{Corley_2026_CVPR,
+    author    = {Corley, Isaac and Stoken, Alex and Berton, Gabriele},
+    title     = {Are Pretrained Image Matchers Good Enough for SAR-Optical Satellite Registration?},
+    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) Workshops},
+    month     = {June},
+    year      = {2026},
+    pages     = {78-87}
+}</pre>
+      </div>
+    </article>
+
+    <footer>
+      &copy; 2026 Isaac Corley &middot;
+      <a href="https://github.com/isaaccorley/rsim/blob/main/LICENSE">Apache 2.0 license</a> &middot;
+      <a href="https://github.com/isaaccorley/rsim">Source on GitHub</a>
+    </footer>
+
+  </main>
+</body>
+</html>
